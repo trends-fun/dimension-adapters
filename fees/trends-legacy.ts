@@ -20,17 +20,11 @@ interface IDammv2Data {
   total_referral_fees: number;
 }
 
-interface IDataWatcherData {
-  total_creator_fees: number;
-  total_protocol_fees: number;
-  total_referral_fees: number;
-}
-
 const metrics = {
   TradingFees: METRIC.TRADING_FEES,
   PartnerFees: 'Partner Fees',
   ReferralFees: 'Referral Fees',
-  ProtocolFees: METRIC.PROTOCOL_FEES,
+  ProtocolFees: 'Protocol Fees',
 }
 
 const dbcSQL = `
@@ -110,17 +104,6 @@ const dammV2SQL = `
   GROUP BY account_config
 `;
 
-const dataWatcherSQL = `
-  SELECT
-    SUM(COALESCE(creator_fee, 0)) AS total_creator_fees,
-    SUM(COALESCE(protocol_fee, 0)) AS total_protocol_fees,
-    SUM(COALESCE(referral_fee, 0)) AS total_referral_fees
-  FROM dune.data_watcher.result_bonding_curve_swap_events
-  WHERE block_time >= from_unixtime({{start}})
-    AND block_time < from_unixtime({{end}})
-    AND block_time >= TIMESTAMP '2026-03-04 00:00:00'
-`;
-
 const getSqlFromString = (
   sql: string,
   variables: Record<string, any> = {}
@@ -150,16 +133,9 @@ const fetch = async (_a: any, _b: any, options: FetchOptions) => {
     start: options.startTimestamp,
     end: options.endTimestamp,
   });
-  const dataWatcherQuery = getSqlFromString(dataWatcherSQL, {
-    start: options.startTimestamp,
-    end: options.endTimestamp,
-  });
 
-  const [dbdData, dammv2Data, dataWatcherData] = await Promise.all([
-    queryDuneSql(options, query) as Promise<IData[]>,
-    queryDuneSql(options, dammv2Query) as Promise<IDammv2Data[]>,
-    queryDuneSql(options, dataWatcherQuery) as Promise<IDataWatcherData[]>,
-  ]);
+  const dbdData: IData[] = await queryDuneSql(options, query);
+  const dammv2Data: IDammv2Data[] = await queryDuneSql(options, dammv2Query);
   const dailyFees = options.createBalances();
   const dailyProtocolRevenue = options.createBalances();
   const dailySupplySideRevenue = options.createBalances();
@@ -185,17 +161,6 @@ const fetch = async (_a: any, _b: any, options: FetchOptions) => {
     dailySupplySideRevenue.add(quote_mint, Number(row.total_partner_fees), metrics.PartnerFees);
     
     dailyProtocolRevenue.add(quote_mint, Number(row.total_lp_fees), metrics.TradingFees);
-    dailyProtocolRevenue.add(quote_mint, Number(row.total_protocol_fees), metrics.ProtocolFees);
-  });
-
-  dataWatcherData.forEach((row) => {
-    dailyFees.add(quote_mint, Number(row.total_creator_fees), metrics.PartnerFees);
-    dailyFees.add(quote_mint, Number(row.total_protocol_fees), metrics.ProtocolFees);
-    dailyFees.add(quote_mint, Number(row.total_referral_fees), metrics.ReferralFees);
-
-    dailySupplySideRevenue.add(quote_mint, Number(row.total_referral_fees), metrics.ReferralFees);
-    dailySupplySideRevenue.add(quote_mint, Number(row.total_creator_fees), metrics.PartnerFees);
-
     dailyProtocolRevenue.add(quote_mint, Number(row.total_protocol_fees), metrics.ProtocolFees);
   });
 
