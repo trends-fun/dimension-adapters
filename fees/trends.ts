@@ -155,7 +155,7 @@ const fetch = async (_a: any, _b: any, options: FetchOptions) => {
     end: options.endTimestamp,
   });
 
-  const [dbdData, dammv2Data, dataWatcherData] = await Promise.all([
+  const [dbcData, dammv2Data, dataWatcherData] = await Promise.all([
     queryDuneSql(options, query) as Promise<IData[]>,
     queryDuneSql(options, dammv2Query) as Promise<IDammv2Data[]>,
     queryDuneSql(options, dataWatcherQuery) as Promise<IDataWatcherData[]>,
@@ -164,7 +164,7 @@ const fetch = async (_a: any, _b: any, options: FetchOptions) => {
   const dailyProtocolRevenue = options.createBalances();
   const dailySupplySideRevenue = options.createBalances();
 
-  dbdData.forEach((row) => {
+  dbcData.forEach((row) => {
     dailyFees.add(row.quote_mint, Number(row.total_trading_fees), metrics.TradingFees);
     dailyFees.add(row.quote_mint, Number(row.total_protocol_fees), metrics.ProtocolFees);
     dailyFees.add(row.quote_mint, Number(row.total_referral_fees), metrics.ReferralFees);

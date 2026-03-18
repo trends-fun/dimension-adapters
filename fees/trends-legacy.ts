@@ -134,13 +134,13 @@ const fetch = async (_a: any, _b: any, options: FetchOptions) => {
     end: options.endTimestamp,
   });
 
-  const dbdData: IData[] = await queryDuneSql(options, query);
+  const dbcData: IData[] = await queryDuneSql(options, query);
   const dammv2Data: IDammv2Data[] = await queryDuneSql(options, dammv2Query);
   const dailyFees = options.createBalances();
   const dailyProtocolRevenue = options.createBalances();
   const dailySupplySideRevenue = options.createBalances();
 
-  dbdData.forEach((row) => {
+  dbcData.forEach((row) => {
     dailyFees.add(row.quote_mint, Number(row.total_trading_fees), metrics.TradingFees);
     dailyFees.add(row.quote_mint, Number(row.total_protocol_fees), metrics.ProtocolFees);
     dailyFees.add(row.quote_mint, Number(row.total_referral_fees), metrics.ReferralFees);
